@@ -11,6 +11,10 @@ class policy(nn.Module):
     def __init__(self, trunk_structure, policy_structure, value_structure):
         super().__init__()
 
+        # Conv. Layers
+        self.conv1 = nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=2, out_channels=2, kernel_size=3, padding=1)
+
         trunk_layers = []
         policy_layers = []
         value_layers = []
@@ -41,9 +45,14 @@ class policy(nn.Module):
         # Save for Masking
         state_me = x[:42].reshape(6,7) 
         state_them = x[42:].reshape(6,7)
-   
+    
+        # Forward Conv.
+        x = x.reshape(1,2,6,7)
+        x = F.leaky_relu(self.conv1(x))
+        x = F.leaky_relu(self.conv2(x))
         x = x.reshape(84)
   
+
         # Forward Main
         for i in self.trunk_layers:
             x = F.leaky_relu(i(x)) 
