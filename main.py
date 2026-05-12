@@ -5,8 +5,8 @@ from tree_module import MCTS
 from functions import alphazero_display, softmax_temp, expand_to_84
 
 torch.serialization.add_safe_globals([policy])
-policy_network = torch.load("trained.pt", weights_only=False)
-policy_name = "trained.pt"
+policy_network = torch.load("alphazero.pt", weights_only=False)
+policy_name = "alphazero.pt"
 
 initial = torch.zeros(6,7)
 
@@ -16,7 +16,7 @@ column = ""
 move = 0
 exploration_constant = 3.5
 epsilon = 0
-search_depth = 1000
+search_depth = 250
 noise = 0
 
 text = r"""    _    _       _           _____              
@@ -136,9 +136,10 @@ while (column != "end"):
                 print("\n🟡🟡🟡🟡 Yellow Wins! 🟡🟡🟡🟡\n")
                 graphic(environment.state)
                 print("\n")
+                print("")
                 column = "end"
             else:
-                print("🔴🔴🔴🔴 Red Wins! 🔴🔴🔴🔴\n")
+                print("\n🔴🔴🔴🔴 Red Wins! 🔴🔴🔴🔴\n")
                 graphic(environment.state)
                 print("")
                 column = "end"
@@ -188,10 +189,12 @@ while (column != "end"):
             if player == 1:
                 print("🟡🟡🟡🟡 Yellow Wins! 🟡🟡🟡🟡\n")
                 graphic(environment.state)
+                print("")
                 column = "end"
             else:
-                print("\n🔴🔴🔴🔴 Red Wins! 🔴🔴🔴🔴\n")
+                print("🔴🔴🔴🔴 Red Wins! 🔴🔴🔴🔴\n")
                 graphic(environment.state)
+                print("")
                 column = "end"
 
 

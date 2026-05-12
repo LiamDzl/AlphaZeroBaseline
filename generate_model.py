@@ -1,9 +1,9 @@
 import torch
 from neural_network import policy
 
-parameters = policy(trunk_structure=[252, 168, 84],
-                    policy_structure=[84, 84, 7],
-                    value_structure=[84, 84, 1],
+parameters = policy(trunk_structure=[504],
+                    policy_structure=[504, 252, 126, 7],
+                    value_structure=[504, 252, 126, 1],
                     name="random")
 
-torch.save(parameters, f"Agents/random.pt")
+torch.save(parameters, f"random.pt")

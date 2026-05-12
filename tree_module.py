@@ -1,10 +1,9 @@
 import torch
 import torch.nn.functional as F
-from connect_4 import Grid, mask, winner, graphic, compute_player
+from connect_4 import Grid, winner, compute_player
 import math
-import numpy as np
 import copy
-from functions import expand_to_84, diverge_distribution
+from functions import expand_to_84
 
 # Specified in AlphaZero Paper
 dirichlet = torch.distributions.Dirichlet(torch.full((7,), 1.))
@@ -49,7 +48,7 @@ class Node: # Initialise on Discovery
          x = expand_to_84(x)
          output_vector = self.model.forward(x)
          output_vector.detach()
-         # Grab relevant infos
+         # Grab relevant info
          nn_dist = output_vector[0:7]
          nn_value = output_vector[7] 
 

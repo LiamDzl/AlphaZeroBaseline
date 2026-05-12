@@ -16,8 +16,12 @@ class policy(nn.Module):
         self.name = name
 
         # Conv. Layers
-        self.conv1 = nn.Conv2d(in_channels=2, out_channels=6, kernel_size=3, padding=1)
-        self.conv2 = nn.Conv2d(in_channels=6, out_channels=6, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=2, out_channels=12, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(in_channels=12, out_channels=12, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(in_channels=12, out_channels=12, kernel_size=3, padding=1)
+        self.conv4 = nn.Conv2d(in_channels=12, out_channels=12, kernel_size=3, padding=1)
+        self.conv5 = nn.Conv2d(in_channels=12, out_channels=12, kernel_size=3, padding=1)
+        self.conv6 = nn.Conv2d(in_channels=12, out_channels=12, kernel_size=3, padding=1)
 
         trunk_layers = []
         policy_layers = []
@@ -52,27 +56,31 @@ class policy(nn.Module):
     
         # Forward Conv.
         x = x.reshape(1,2,6,7)
-        x = F.leaky_relu(self.conv1(x))
-        x = F.leaky_relu(self.conv2(x))
-        x = x.reshape(252)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = F.relu(self.conv4(x))
+        x = F.relu(self.conv5(x))
+        x = F.relu(self.conv6(x))
+        x = x.reshape(504)
   
         # Forward Main
         for i in self.trunk_layers:
-            x = F.leaky_relu(i(x)) 
+            x = F.relu(i(x)) 
 
         x_policy = x.clone()
         x_value = x.clone()
 
         # Forward Policy
         for i in self.policy_layers[:-1]:
-            x_policy = F.leaky_relu(i(x_policy)) 
+            x_policy = F.relu(i(x_policy)) 
 
         latent_actions = x_policy.clone()
         x_policy = self.policy_layers[-1](x_policy)
 
         # Forward Value
         for i in self.value_layers[:-1]:
-            x_value = F.leaky_relu(i(x_value))
+            x_value = F.relu(i(x_value))
 
         latent_value = x_value.clone()
         x_value = self.value_layers[-1](x_value)

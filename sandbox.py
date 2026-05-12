@@ -1,12 +1,12 @@
 import torch
-from neural_network import policy, Constant_Network
+from neural_network import policy
 from connect_4 import Grid, winner, graphic, compute_player
 from tree_module import MCTS
 from functions import alphazero_display, softmax_temp, expand_to_84
 
 torch.serialization.add_safe_globals([policy])
-policy_network = torch.load("Agents/trained.pt", weights_only=False)
-policy_name = "trained.pt"
+policy_network = torch.load("alphazero.pt", weights_only=False)
+policy_name = "alphazero.pt"
 
 initial = torch.zeros(6,7)
 environment = Grid(state=initial)
