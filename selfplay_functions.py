@@ -104,11 +104,9 @@ def worker(args):
                         root_policy=root_policy)
 
     return X, Y
-
-# Generate First 400 States in Connect 4
-initial_states = generate_400()
     
 def parallel_selfplay(game_set, game_sets, policy_network, mcts_depth, exploration_constant, epsilon, gamma, noise, cpu_cores, root_policy=None):
+    initial_states = generate_400()
     random.shuffle(initial_states)
     args_list = [(policy_network, state, mcts_depth, exploration_constant, epsilon, gamma, noise, game_set, game_sets, root_policy) for state in initial_states[:cpu_cores]]
 
