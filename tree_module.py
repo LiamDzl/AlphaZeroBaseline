@@ -3,13 +3,11 @@ import torch.nn.functional as F
 from connect_4 import Grid, winner, compute_player
 import math
 import copy
-from functions import expand_to_84
+from functions import expand_to_126, cosine_similarity
 
 # Specified in AlphaZero Paper
 dirichlet = torch.distributions.Dirichlet(torch.full((7,), 1.))
 
-# Beta Divergence Parameter
-beta = 0
 
 def PUCT(parent, child, exploration_constant):
     # Compute Prior (Right of Equation)
@@ -38,16 +36,23 @@ class Node: # Initialise on Discovery
         self.parent = None # Stores single parent node
         self.parent_action = None
         self.children = [None, None, None, None, None, None, None] # Stores children node objects
+
         self.is_terminal = False
+        self.is_root = False
+
+        self.CNN_embedding = None # Useful for Memory Algorithm ...
 
     def expand(self, state):
          # Once node is created, all we have is scalar prior and whose turn it is...
          # expanding only necessary if we actually decide to explore this action
          self.state = state
          x = state.reshape(42).float()
-         x = expand_to_84(x)
-         output_vector = self.model.forward(x)
+         x = expand_to_126(x)
+
+         # Forward pass through NN
+         CNN_embedding, output_vector = self.model.forward(x)
          output_vector.detach()
+
          # Grab relevant info
          nn_dist = output_vector[0:7]
          nn_value = output_vector[7] 
@@ -62,6 +67,10 @@ class Node: # Initialise on Discovery
                 self.children[index].parent_action = index
 
                 # Note child's index in children list represents which action was taken to get from parent to child
+
+         # Save CNN Embedding for Root and Immediate Children   
+         if self.is_root == True or self.parent.is_root == True:
+             self.CNN_embedding = CNN_embedding.detach()
 
          return nn_value, nn_dist
 
@@ -110,21 +119,14 @@ class MCTS:
         red_wins = 0
         yellow_wins = 0
         player = compute_player(state) # State Encodes Info
+
+        # Create Root
         root = Node(prior=None, player=player, model=self.model)
+        root.is_root = True
         root.expand(state=state)
+
         self.explored_nodes.append(root)
 
-        # Modulate Priors at Root for Divergence
-        if self.root_policy is not None:
-            x = state.reshape(42).float()
-            x = expand_to_84(x)
-            root_prior = self.root_policy.forward(x)[:-1]
-            for index, child in enumerate(root.children):
-                try:
-                    child.prior = child.prior * torch.exp(beta * (child.prior - root_prior[index]))
-                except:
-                    pass
-   
         # Add Dirichlet Noise to Root
         nablas = dirichlet.sample()
         for index, child in enumerate(root.children):
@@ -154,7 +156,6 @@ class MCTS:
                     proceed = False
                     break
 
-                self.explored_nodes.append(current_node)
                 player = player * -1
 
             # Above Breaks if "current_node" (un)Expanded
@@ -167,7 +168,10 @@ class MCTS:
                 state_save = copy.deepcopy(parent_node.state) # Debugging Error
                 grid.action(column=current_node.parent_action) # New State for New Node
                 parent_node.state = state_save
+
                 nn_value, nn_dist = current_node.expand(state=grid.state) # Expand Node, Store Value to Backprop. up the Branch
+                self.explored_nodes.append(current_node)
+
                 nn_value = nn_value.item()
                 nn_value *= -1 # Correct Perspectives
 
@@ -233,5 +237,14 @@ class MCTS:
             print(f"\n# Total Wins: {total_wins} / {self.iterations}\n")
             print(f"... With 🔴 Winning {red_wins}, vs 🟡 Winning {yellow_wins}\n")
 
-        return mcts_distribution
+        root_CNN_embedding = root.CNN_embedding
+        expected_child_CNN_embedding = torch.zeros(252)
+
+        for child_node in root.children:
+            if child_node is not None:
+                if child_node.visit_count != 0:
+                    expected_child_CNN_embedding += (child_node.visit_count / self.iterations) * child_node.CNN_embedding
+        
+
+        return root.value(), root_CNN_embedding, expected_child_CNN_embedding, mcts_distribution
     

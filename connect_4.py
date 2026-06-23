@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import copy
 
+
 def compute_player(state):
     if torch.sum(state) == 0:
         return 1
@@ -76,7 +77,7 @@ def winner(state):
             
     return 0
 
-def graphic(state):
+def visual(state):
     # Red to Move
     if torch.sum(state) == 0:
         for row in state:

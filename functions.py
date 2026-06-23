@@ -1,8 +1,10 @@
 import torch
 import numpy as np
+import os
 import random
+import json
 import copy
-from connect_4 import Grid, graphic, compute_player
+from connect_4 import Grid, compute_player, visual
 from rich import print as richprint
 from rich.panel import Panel
 from rich.columns import Columns
@@ -91,7 +93,7 @@ def generate_random(lambda_value, games):
 
 def bar_matrix_emoji(dist, height, colour):
     space = " "
-    # Normalize
+    # Normalise
     max_val = dist.max().item()
     if max_val == 0:
         heights = [0] * len(dist)
@@ -142,24 +144,69 @@ def alphazero_display(policy_name, state, tree_dist, tree_value, neural_dist, ne
     output = Columns([g1, Padding(g2, (0, 0, 0, 2))])
     richprint(output)
     print("")
-    print(f"# 🌿 Tree w/ Temperature:")
-    print(softmax_temp(tree_dist, temp=noise))
-    print("")
-    print(f"# 🌀 Agent's Choice: {agent_move}")
+    print(f"# 🌀 Agent's Choice: {agent_move+1}")
     print("")
 
-def expand_to_84(x42):
-    first = (x42 == 1).float() # Player's Pieces
-    second = (x42 == -1).float() # Opponent's Pieces
-    return torch.cat([first, second], dim=0)
+def expand_to_126(x42):
+    board = x42.reshape(6, 7)
 
-def contract_to_42(x84):
-    first = x84[:42] 
-    second = x84[42:]
-    board = first - second
+    current = (board == 1).float()
+    empty = (board == 0).float()
+    opponent = (board == -1).float()
+
+    x = torch.stack([current, empty, opponent], dim=0)
+
+    return x.reshape(126)
+
+def contract_to_42(x126):
+    current = x126[:42]
+    opponent = x126[84:]
+
+    board = current - opponent
     return board
+
+def graphic(state):
+    if state.size()[0] == 126:
+        visual(contract_to_42(state).reshape(6,7))
+    else:
+        visual(state)
 
 def diverge_distribution(beta, child_dist, parent_dist):
     modulated = child_dist * torch.exp(beta * (child_dist - parent_dist))
     scale = torch.sum(modulated)
     return modulated / scale
+
+def jsd(p, q, eps=1e-12):
+    p = p.clamp(min=eps)
+    q = q.clamp(min=eps)
+
+    p = p / p.sum(dim=-1, keepdim=True)
+    q = q / q.sum(dim=-1, keepdim=True)
+
+    m = 0.5 * (p + q)
+
+    js = 0.5 * (p * (p.log() - m.log())).sum(dim=-1) + \
+         0.5 * (q * (q.log() - m.log())).sum(dim=-1)
+
+    js = torch.clamp(js, min=0.0)
+    return torch.sqrt(js)
+
+def cosine_similarity(x, y):
+    return torch.dot(x, y) / (torch.norm(x) * torch.norm(y))
+
+def load_dataset():
+    load_path = os.path.join("AlphaZeroDatasets", f"dataset.json")
+    with open(load_path, "r") as f:
+        dataset = json.load(f)
+    
+    X = torch.tensor(dataset["States"]).float() 
+    Y = torch.tensor(dataset["MCTS Visits and Z Scores"]).float()
+    U = torch.tensor(dataset["MCTS Values"]).float() 
+    V = torch.tensor(dataset["CNN Embeddings"]).float() 
+    W = torch.tensor(dataset["Expected CNN Child Embeddings"]).float()
+    
+    return X, Y, U, V, W
+
+def dirichlet_smooth(p, alpha=1e-6):
+    p = p + alpha
+    return p / p.sum(dim=-1, keepdim=True)

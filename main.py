@@ -1,11 +1,11 @@
 import torch
 from neural_network import policy
-from connect_4 import Grid, winner, graphic, compute_player
+from connect_4 import Grid, winner, compute_player
 from tree_module import MCTS
-from functions import alphazero_display, softmax_temp, expand_to_84
+from functions import alphazero_display, expand_to_126, graphic
 
 torch.serialization.add_safe_globals([policy])
-policy_network = torch.load("alphazero.pt", weights_only=False)
+policy_network = torch.load("generation_67.pt", weights_only=False)
 policy_name = "alphazero.pt"
 
 initial = torch.zeros(6,7)
@@ -56,22 +56,22 @@ while not proceed:
         agent_colour = 1
    
         tree_search = MCTS(model=policy_network, iterations=search_depth, root_policy=None)
-        distribution = tree_search.run(state=environment.state,
+        _, _, _, distribution = tree_search.run(state=environment.state,
                                        exploration_constant=exploration_constant,
                                        epsilon=epsilon,
                                        display=True)
 
         state = environment.state.reshape(42)
-        output = policy_network.forward(expand_to_84(state))
+        _, output = policy_network.forward(expand_to_126(state))
 
         neural_distribution = output[:7]
         value = output[7]
         
         root_node = tree_search.explored_nodes[0]
+        print(root_node.state)
         root_value = root_node.value_sum / root_node.visit_count
 
-        choose_from = softmax_temp(distribution, temp=noise)[0]
-        agent_move = torch.multinomial(choose_from, num_samples=1)
+        agent_move = torch.argmax(distribution)
 
         # Display Network Heads
         alphazero_display(policy_name=policy_name,
@@ -153,22 +153,22 @@ while (column != "end"):
             graphic(environment.state)
         
         tree_search = MCTS(model=policy_network, iterations=search_depth, root_policy=None)
-        distribution = tree_search.run(state=environment.state,
+        _, _, _, distribution = tree_search.run(state=environment.state,
                                        exploration_constant=exploration_constant,
                                        epsilon=epsilon,
                                        display=True)
         
         state = environment.state.reshape(42)
-        output = policy_network.forward(expand_to_84(state))
+        _, output = policy_network.forward(expand_to_126(state))
 
         neural_distribution = output[:7]
         value = output[7]
 
         root_node = tree_search.explored_nodes[0]
+        print(root_node.state)
         root_value = root_node.value_sum / root_node.visit_count
 
-        choose_from = softmax_temp(distribution, temp=noise)[0]
-        agent_move = torch.multinomial(choose_from, num_samples=1)
+        agent_move = torch.argmax(distribution)
 
         # Display Network Heads
         alphazero_display(policy_name=policy_name,
