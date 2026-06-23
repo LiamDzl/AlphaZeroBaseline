@@ -5,7 +5,7 @@ from tree_module import MCTS
 from functions import alphazero_display, expand_to_126, graphic
 
 torch.serialization.add_safe_globals([policy])
-policy_network = torch.load("generation_67.pt", weights_only=False)
+policy_network = torch.load("AlphaZeroGenerations/generation_100.pt", weights_only=False)
 policy_name = "alphazero.pt"
 
 initial = torch.zeros(6,7)
